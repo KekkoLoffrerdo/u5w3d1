@@ -32,7 +32,6 @@ public class TokenFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.replace("Bearer ", "");
-
         tokenTools.verifyToken(token);
 
         filterChain.doFilter(request, response);
@@ -40,6 +39,8 @@ public class TokenFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return new AntPathMatcher().match("/auth/**", request.getServletPath());
+        return new AntPathMatcher().match("/auth/**", request.getServletPath())
+           || new AntPathMatcher().match("/dipendenti/**", request.getServletPath());
     }
+
 }

@@ -1,5 +1,6 @@
 package com.example.u5w2d5esame.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -20,16 +21,23 @@ public class Dipendente {
     @GeneratedValue
     @Setter(AccessLevel.NONE)
     private UUID id;
+
     @Column(nullable = false, unique = true)
     private String username;
+
     @Column(nullable = false)
     private String nome;
+
     @Column(nullable = false)
     private String cognome;
+
     @Column(nullable = false, unique = true)
     private String email;
+
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
+
     @Column(name = "avatar_url")
     private String avatarURL;
 

@@ -8,7 +8,11 @@ import com.example.u5w2d5esame.exceptions.NotFoundException;
 import com.example.u5w2d5esame.payloads.DipendenteDTO;
 import com.example.u5w2d5esame.repositories.DipendentiRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,10 +26,14 @@ public class DipendentiService {
 
     private final DipendentiRepository dipendentiRepository;
     private final Cloudinary cloudinaryUploader;
+    private final PasswordEncoder passwordEncoder;
 
-    public DipendentiService(DipendentiRepository dipendentiRepository, Cloudinary cloudinaryUploader) {
+    public DipendentiService(DipendentiRepository dipendentiRepository,
+                             Cloudinary cloudinaryUploader,
+                             PasswordEncoder passwordEncoder) {
         this.dipendentiRepository = dipendentiRepository;
         this.cloudinaryUploader = cloudinaryUploader;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public Dipendente save(DipendenteDTO body) {
@@ -42,7 +50,7 @@ public class DipendentiService {
                 body.nome(),
                 body.cognome(),
                 body.email(),
-                body.password()
+                passwordEncoder.encode(body.password())
         );
 
         Dipendente savedDipendente = this.dipendentiRepository.save(newDipendente);
@@ -62,16 +70,19 @@ public class DipendentiService {
                 .orElseThrow(() -> new NotFoundException(id));
     }
 
+    public Dipendente findByEmail(String email) {
+        return this.dipendentiRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Dipendente non trovato"));
+    }
+
     public Dipendente findByIdAndUpdate(UUID id, DipendenteDTO body) {
         Dipendente found = this.findById(id);
 
-        if (!found.getEmail().equals(body.email()) &&
-                this.dipendentiRepository.existsByEmail(body.email())) {
+        if (!found.getEmail().equals(body.email()) && this.dipendentiRepository.existsByEmail(body.email())) {
             throw new BadRequestException("L'email " + body.email() + " è già in uso");
         }
 
-        if (!found.getUsername().equals(body.username()) &&
-                this.dipendentiRepository.existsByUsername(body.username())) {
+        if (!found.getUsername().equals(body.username()) && this.dipendentiRepository.existsByUsername(body.username())) {
             throw new BadRequestException("Lo username " + body.username() + " è già in uso");
         }
 
@@ -79,11 +90,10 @@ public class DipendentiService {
         found.setNome(body.nome());
         found.setCognome(body.cognome());
         found.setEmail(body.email());
-        found.setPassword(body.password());
+        found.setPassword(passwordEncoder.encode(body.password()));
 
         Dipendente updatedDipendente = this.dipendentiRepository.save(found);
         log.info("Il dipendente con id {} è stato aggiornato correttamente", updatedDipendente.getId());
-
         return updatedDipendente;
     }
 
@@ -91,17 +101,12 @@ public class DipendentiService {
         Dipendente found = this.findById(id);
         this.dipendentiRepository.delete(found);
     }
-    public Dipendente findByEmail(String email) {
-        return this.dipendentiRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("Dipendente non trovato"));
-    }
+
     public void avatarUpload(MultipartFile file, UUID id) {
         Dipendente found = this.findById(id);
 
         try {
-            Map result = cloudinaryUploader.uploader()
-                    .upload(file.getBytes(), ObjectUtils.emptyMap());
-
+            Map result = this.cloudinaryUploader.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
             String url = (String) result.get("secure_url");
 
             found.setAvatarURL(url);

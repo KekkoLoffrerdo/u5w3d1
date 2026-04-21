@@ -17,6 +17,10 @@ public class AuthController {
 
     @PostMapping("/login")
     public LoginRespDTO login(@RequestBody LoginDTO body) {
+        System.out.println(">>> LOGIN ARRIVATO");
+        System.out.println("Email: " + body.email());
+        System.out.println("Password: " + body.password());
+
         return new LoginRespDTO(this.authService.login(body));
     }
 }
